@@ -1,20 +1,14 @@
 import copy
 import shutil
-
 from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 import os
 import platform
 import sys
 from PDFCompare import pdf_is_equal
 import urllib.request
-import warnings
-
-warnings.filterwarnings("ignore", category=FutureWarning)
+from EmailSender import email_sender
+import time
 
 
 class Crawler:
@@ -115,7 +109,7 @@ class Crawler:
             "Manual de Marca": "https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/I_manual_uso_marca_pix.pdf",
             "Manual de Padroes de Iniciacao PIX": "https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/II_ManualdePadroesparaIniciacaodoPix.pdf",
             "Manual de Fluxos do Processo de Efetivacao_PIX": "https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/III_ManualdeFluxosdoProcessodeEfetivacaodoPix.pdf",
-            "Requisitos Minimos de Experiencia do Esuario": "https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/IV_RequisitosMinimosparaExperienciadoUsuario.pdf",
+            "Requisitos Minimos de Experiencia do Usuario": "https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/IV_RequisitosMinimosparaExperienciadoUsuario.pdf",
             "Manual de Tempos do Pix": "https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/IX_ManualdeTemposdoPix.pdf",
             "Manual Operacional do DICT": "https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/X_ManualOperacionaldoDICT.pdf",
             "Manual de Resolucao de Disputas": "https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/XI_Manual_de_resolucao_de_disputa.pdf"
@@ -130,11 +124,11 @@ class Crawler:
 
         string_pix_description = '\n'.join(map(str, self.pix_descriptions))
 
-        file = open(os.path.join(self.root_directory, "temp", "description.txt"), "a")
+        file = open(os.path.join(self.root_directory, "temp", "description.txt"), "w")
         file.writelines(string_pix_description)
         file.close()
 
-    def compare_all(self):
+    def compare_all(self, send_to_email=False):
         print(
             "The program will download and compare all main descriptions and regulations, it could take a fill minutes")
 
@@ -150,20 +144,22 @@ class Crawler:
         while os.path.exists(os.path.join(self.root_directory, "old versions", "descriptionV" + str(version) + ".txt")):
             version += 1
 
+        new_path = os.path.join(self.root_directory, "old versions", "descriptionV" + str(version) + ".txt")
         if version != 0:
             file = open(os.path.join(self.root_directory, "old versions", "descriptionV" + str(version - 1) + ".txt"))
             data2 = file.read()
             file.close()
 
             if data1 != data2:
-                shutil.copy(os.path.join(self.root_directory, "temp", "description.txt"),
-                            os.path.join(self.root_directory, "old versions", "descriptionV" + str(version) + ".txt"))
+                shutil.copy(os.path.join(self.root_directory, "temp", "description.txt"), new_path)
 
+                email_sender(new_path, "Description")
                 print("descriptions has been modify!")
         else:
             shutil.copy(os.path.join(self.root_directory, "temp", "description.txt"),
                         os.path.join(self.root_directory, "old versions", "descriptionV" + str(version) + ".txt"))
-
+            if send_to_email:
+                email_sender(new_path, "Description")
             print("descriptions has been modify!")
 
         # Compare pdf if is not None
@@ -173,10 +169,15 @@ class Crawler:
                 while os.path.exists(
                         os.path.join(self.root_directory, "old versions", name + "V" + str(version) + ".pdf")):
                     version += 1
+                new_path = os.path.join(self.root_directory, "old versions", name + "V" + str(version) + ".pdf")
 
                 if version == 0 or not(pdf_is_equal(os.path.join(self.root_directory, "temp", name + ".pdf"),
                                 os.path.join(self.root_directory, "old versions",
                                              name + "V" + str(version - 1) + ".pdf"))):
-                    shutil.copy(os.path.join(self.root_directory, "temp", name + ".pdf"),
-                                os.path.join(self.root_directory, "old versions", name + "V" + str(version) + ".pdf"))
+
+
+                    shutil.copy(os.path.join(self.root_directory, "temp", name + ".pdf"), new_path)
+                    if send_to_email:
+                        email_sender(new_path, name)
+                        time.sleep(10)
                     print(name + " has been modify!")
