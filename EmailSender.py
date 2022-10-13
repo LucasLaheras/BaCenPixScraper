@@ -20,7 +20,7 @@ def email_sender(file, name):
         msg['To'] = toaddr
         msg['Subject'] = "Alteração do " + name
 
-        body = "\n[Mensagem automática de nova versão BaCen]\n\n Foram identificadas mudanças nos arquivo:" + \
+        body = "\n[Mensagem automática de nova versão BaCen]\n\n Foram identificadas mudanças nos arquivo: " + \
                name + "\n\nAtenciosamente,\nBaCenPixScraper\nhttps://github.com/LucasLaheras/BaCenPixScraper "
 
         msg.attach(MIMEText(body, 'plain'))
@@ -31,7 +31,7 @@ def email_sender(file, name):
             part = MIMEBase('application', 'octet-stream')
             part.set_payload((attachment).read())
             encoders.encode_base64(part)
-            part.add_header('Content-Disposition', "attachment; filename= %s" % (name + ".pdf"))
+            part.add_header('Content-Disposition', "attachment; filename= %s" % (name))
 
             msg.attach(part)
 

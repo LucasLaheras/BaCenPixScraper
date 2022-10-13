@@ -76,7 +76,7 @@ class Crawler:
         driver.get('https://www.bcb.gov.br/estabilidadefinanceira/comunicacaodados')
 
         self.pix_descriptions.append("tecnical documents list")
-        for i in range(5):
+        for i in range(20):
             try:
                 item = driver.find_element_by_xpath(
                     '/html/body/app-root/app-root/main/dynamic-comp/div/div/div[1]/div/div[2]/ul/li[' + str(
@@ -90,7 +90,7 @@ class Crawler:
         self.pix_descriptions.append(driver.find_element_by_xpath(
             '/html/body/app-root/app-root/main/dynamic-comp/div/div/div[1]/div/h4[2]').text)
 
-        for i in range(6):
+        for i in range(30):
             try:
                 item = driver.find_element_by_xpath(
                     '/html/body/app-root/app-root/main/dynamic-comp/div/div/div[1]/div/div[4]/ul/li[' + str(
@@ -114,10 +114,11 @@ class Crawler:
             "Manual Operacional do DICT": "https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/X_ManualOperacionaldoDICT.pdf",
             "Manual de Resolucao de Disputas": "https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/XI_Manual_de_resolucao_de_disputa.pdf"
         }
-
-        for name, url in self.name2url.items():
-            urllib.request.urlretrieve(url, os.path.join(self.root_directory, "temp", name + ".pdf"))
-
+        try:
+            for name, url in self.name2url.items():
+                urllib.request.urlretrieve(url, os.path.join(self.root_directory, "temp", name + ".pdf"))
+        except:
+            print(name)
     def save_descriptions(self):
         self.search_main_pix()
         self.search_communicatiions_pix()
@@ -159,7 +160,7 @@ class Crawler:
             shutil.copy(os.path.join(self.root_directory, "temp", "description.txt"),
                         os.path.join(self.root_directory, "old versions", "descriptionV" + str(version) + ".txt"))
             if send_to_email:
-                email_sender(new_path, "Description")
+                email_sender(new_path, "Description.txt")
             print("descriptions has been modify!")
 
         # Compare pdf if is not None
@@ -178,6 +179,6 @@ class Crawler:
 
                     shutil.copy(os.path.join(self.root_directory, "temp", name + ".pdf"), new_path)
                     if send_to_email:
-                        email_sender(new_path, name)
+                        email_sender(new_path, name + ".pdf")
                         time.sleep(10)
                     print(name + " has been modify!")
