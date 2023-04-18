@@ -88,12 +88,12 @@ class Crawler:
         self.pix_descriptions.append("catalog:")
 
         self.pix_descriptions.append(driver.find_element_by_xpath(
-            '/html/body/app-root/app-root/main/dynamic-comp/div/div/div[1]/div/h4[2]').text)
+            '/html/body/app-root/app-root/div/div/main/dynamic-comp/div/div/div[1]/div/h4[2]').text)
 
         for i in range(30):
             try:
                 item = driver.find_element_by_xpath(
-                    '/html/body/app-root/app-root/main/dynamic-comp/div/div/div[1]/div/div[4]/ul/li[' + str(
+                    '/html/body/app-root/app-root/div/div/main/dynamic-comp/div/div/div[1]/div/div[4]/ul/li[1]' + str(
                         i + 1) + ']').text
                 self.pix_descriptions.append(copy.copy(item))
             except:
@@ -115,6 +115,7 @@ class Crawler:
             "Manual de Resolucao de Disputas": "https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/XI_Manual_de_resolucao_de_disputa.pdf",
             "Guia do MED": "https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Guia%20MED%20-%20vers%C3%A3o%201.0.pdf",
             "Guia do saque e troco": "https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Guia_Implementacao_Pix_Saque_Troco.pdf",
+            "Guia de implementação do canal secundário": "https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Guia_Implementacao_Canal_Secundario_Transmissao_Mensagens.pdf",
             "Lista de geracao e leitura de QRcodes": "https://www.bcb.gov.br/content/estabilidadefinanceira/pix/ListadeverificacaoparageracaoevalidacaodeQRCodes.pdf"
         }
         try:
