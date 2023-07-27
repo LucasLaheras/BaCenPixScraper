@@ -2,6 +2,8 @@ import PyPDF2
 
 
 def pdf2text(pdf_path, return_pages=False):
+    text = ""
+
     # opening method will be rb
     pdffileobj = open(pdf_path, 'rb')
 
@@ -9,16 +11,17 @@ def pdf2text(pdf_path, return_pages=False):
     pdfreader = PyPDF2.PdfFileReader(pdffileobj)
 
     # This will store the number of pages of this pdf file
-    x = pdfreader.numPages
+    size = pdfreader.numPages
 
-    # create a variable that will select the selected number of pages
-    pageobj = pdfreader.getPage(x-1)
+    for j in range(size):
+        # variable that will select the selected pages
+        pageobj = pdfreader.getPage(j)
 
-    # create text variable which will store all text datafrom pdf file
-    text = pageobj.extractText()
+        # this text variable will store all text data from pdf file
+        text = text + pageobj.extractText()
 
     if return_pages:
-        return text, return_pages
+        return text, size
 
     return text
 
