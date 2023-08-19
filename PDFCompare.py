@@ -1,4 +1,11 @@
 import PyPDF2
+import os
+
+
+def notify(title, text):
+    os.system("""
+              osascript -e 'display notification "{}" with title "{}"'
+              """.format(text, title))
 
 
 def pdf2text(pdf_path, return_pages=False):
@@ -20,6 +27,9 @@ def pdf2text(pdf_path, return_pages=False):
         # this text variable will store all text data from pdf file
         text = text + pageobj.extractText()
 
+    pdffileobj = 0
+    pdfreader = 0
+
     if return_pages:
         return text, size
 
@@ -31,6 +41,10 @@ def pdf_is_equal(pdf1_path, pdf2_path):
     pdf2_text, pdf2_size = pdf2text(pdf2_path, True)
 
     if pdf1_size == pdf2_size and pdf1_text == pdf2_text:
+        #notify("Alert", pdf1_path[pdf1_path.rfind('/') + 1:] + " equal")
+        print(pdf1_path[pdf1_path.rfind('/') + 1:] + " equal")
         return True
 
+    notify("Alert", pdf1_path[pdf1_path.rfind('/') + 1:] + " have changes")
+    print(pdf1_path[pdf1_path.rfind('/') + 1:] + " have changes")
     return False

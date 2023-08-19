@@ -79,8 +79,8 @@ class Crawler:
         for i in range(20):
             try:
                 item = driver.find_element_by_xpath(
-                    '/html/body/app-root/app-root/main/dynamic-comp/div/div/div[1]/div/div[2]/ul/li[' + str(
-                        i + 1) + ']').text
+                    '/html/body/app-root/app-root/div/div/main/dynamic-comp/div/div/div[1]/div/div[2]/ul/li[' + str(
+                        i + 1) + ']/a').text
                 self.pix_descriptions.append(copy.copy(item))
             except:
                 pass
@@ -93,12 +93,11 @@ class Crawler:
         for i in range(30):
             try:
                 item = driver.find_element_by_xpath(
-                    '/html/body/app-root/app-root/div/div/main/dynamic-comp/div/div/div[1]/div/div[4]/ul/li[1]' + str(
+                    '/html/body/app-root/app-root/div/div/main/dynamic-comp/div/div/div[1]/div/div[4]/ul/li[' + str(
                         i + 1) + ']').text
                 self.pix_descriptions.append(copy.copy(item))
             except:
                 pass
-
         # closes the Google Chrome
         driver.quit()
 
@@ -123,6 +122,7 @@ class Crawler:
                 urllib.request.urlretrieve(url, os.path.join(self.root_directory, "temp", name + ".pdf"))
         except:
             print(name)
+
     def save_descriptions(self):
         self.search_main_pix()
         self.search_communicatiions_pix()
@@ -185,4 +185,3 @@ class Crawler:
                     if send_to_email:
                         email_sender(new_path, name + ".pdf")
                         time.sleep(10)
-                    print(name + " has been modify!")
