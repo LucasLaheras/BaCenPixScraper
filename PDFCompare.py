@@ -2,12 +2,6 @@ import PyPDF2
 import os
 
 
-def notify(title, text):
-    os.system("""
-              osascript -e 'display notification "{}" with title "{}"'
-              """.format(text, title))
-
-
 def pdf2text(pdf_path, return_pages=False):
     text = ""
 

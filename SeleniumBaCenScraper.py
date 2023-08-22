@@ -14,6 +14,12 @@ import time
 import zipfile
 
 
+def notify(title, text):
+    os.system("""
+              osascript -e 'display notification "{}" with title "{}"'
+              """.format(text, title))
+
+
 class Scraper:
     def __init__(self, root_directory):
         # increase the recursion limit to handle very large searches
@@ -209,6 +215,7 @@ class Scraper:
             if equal:
                 print(item + ' equal')
             else:
+                notify("Alert", item + ' has been modify!')
                 print(item + ' has been modify!')
 
     def compare_all(self, send_to_email=False):
@@ -228,6 +235,7 @@ class Scraper:
         if last_path is not None:
             if not txt_is_equal(os.path.join(self.temp_directory, "description.txt"), last_path):
                 shutil.copy(os.path.join(self.temp_directory, "description.txt"), new_path)
+                notify("Alert", 'description has been modify!')
                 print("descriptions has been modify!")
 
                 descriptions_changed = True
@@ -236,6 +244,7 @@ class Scraper:
                     email_sender(new_path, "Description")
         # new file will always save
         else:
+            notify("Alert", 'description has been modify!')
             shutil.copy(os.path.join(self.temp_directory, "description.txt"), new_path)
             descriptions_changed = True
             if send_to_email:
@@ -255,6 +264,7 @@ class Scraper:
                 if type_file == '.pdf':
                     if last_path is None or not(pdf_is_equal(os.path.join(self.temp_directory, name + type_file),
                                                              last_path)):
+                        notify("Alert", name + type_file + ' has been modify!')
                         print(name + type_file + ' has been modify!')
                         shutil.copy(os.path.join(self.temp_directory, name + type_file), new_path)
                         if send_to_email:
