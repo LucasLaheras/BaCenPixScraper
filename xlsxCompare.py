@@ -99,9 +99,9 @@ def xlsx_is_equal(xlsx1_path, xlsx2_path, output_path):
 
     return True
 
-names = ['REDA041', 'REDA031', 'REDA022', 'REDA017', 'REDA016', 'REDA014', 'PIBR001', 'PIBR002', 'PAIN014', 'PAIN013', 'PACS008', 'PACS004', 'PACS002', 'HEAD001', 'CAMT060', 'CAMT054', 'CAMT053', 'CAMT052', 'CAMT014', 'ADMI004', 'ADMI002']
-
-# print(xlsx_is_equal('/Users/lucaslaheras/Downloads/teste.xlsx', '/Users/lucaslaheras/Downloads/teste2.xlsx', output_path = 'diferences to .xlsx'))
-for item in names:
-    print(xlsx_is_equal('/Users/lucaslaheras/Downloads/v5.07.1/xlsx/' + item + '.xlsx', '/Users/lucaslaheras/Downloads/v5.06.1/xlsx/' + item + '.xlsx', output_path='diferences ' + item + '.xlsx'))
+# names = ['REDA041', 'REDA031', 'REDA022', 'REDA017', 'REDA016', 'REDA014', 'PIBR001', 'PIBR002', 'PAIN014', 'PAIN013', 'PACS008', 'PACS004', 'PACS002', 'HEAD001', 'CAMT060', 'CAMT054', 'CAMT053', 'CAMT052', 'CAMT014', 'ADMI004', 'ADMI002']
+#
+# # print(xlsx_is_equal('/Users/lucaslaheras/Downloads/teste.xlsx', '/Users/lucaslaheras/Downloads/teste2.xlsx', output_path = 'diferences to .xlsx'))
+# for item in names:
+#     print(xlsx_is_equal('/Users/lucaslaheras/Downloads/v5.07.1/xlsx/' + item + '.xlsx', '/Users/lucaslaheras/Downloads/v5.06.1/xlsx/' + item + '.xlsx', output_path='diferences ' + item + '.xlsx'))
 

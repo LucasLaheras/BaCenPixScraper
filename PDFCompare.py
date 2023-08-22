@@ -41,10 +41,6 @@ def pdf_is_equal(pdf1_path, pdf2_path):
     pdf2_text, pdf2_size = pdf2text(pdf2_path, True)
 
     if pdf1_size == pdf2_size and pdf1_text == pdf2_text:
-        #notify("Alert", pdf1_path[pdf1_path.rfind('/') + 1:] + " equal")
-        print(pdf1_path[pdf1_path.rfind('/') + 1:] + " equal")
         return True
 
-    notify("Alert", pdf1_path[pdf1_path.rfind('/') + 1:] + " have changes")
-    print(pdf1_path[pdf1_path.rfind('/') + 1:] + " have changes")
     return False
