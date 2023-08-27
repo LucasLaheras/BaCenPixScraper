@@ -1,5 +1,7 @@
 import copy
 import shutil
+
+import selenium.webdriver.firefox.options
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import os
@@ -21,12 +23,9 @@ def notify(title, text):
 
 
 class Scraper:
-    def __init__(self, root_directory):
+    def __init__(self, root_directory, internet_browser='google_chrome'):
         # increase the recursion limit to handle very large searches
         sys.setrecursionlimit(5000)
-
-        # options handler for Google Chrome
-        self.options = Options()
 
         # saves current directory in a string
         self.root_directory = root_directory
@@ -40,20 +39,11 @@ class Scraper:
         # saves current platform in a string
         self.current_platform = platform.system()
 
-        self.directory_chromedriver = ''
-        if self.current_platform == 'Darwin':
-            self.directory_chromedriver = os.path.join(self.root_directory, 'ChromeDriver', 'ChromeDriverMac')
-        elif self.current_platform == 'Windows':
-            self.directory_chromedriver = os.path.join(self.root_directory, 'ChromeDriver', 'ChromeDriverWin.exe')
-        else:
-            self.directory_chromedriver = os.path.join(self.root_directory, 'ChromeDriver', 'ChromeDriverLin')
+        self.directory_driver = ''
 
-        # sets Chrome to run Headless (without showing the navigator window while running)
-        self.options.add_argument("--window-size=1920,1080")
-        self.options.add_argument("--start-maximized")
-        self.options.add_argument('--headless')
-        self.options.add_argument('--no-sandbox')
-        self.options.add_argument('--disable-gpu')
+        self.driver = []
+
+        self.select_browser(internet_browser)
 
         # define dictionary of all names and urls statics
         self.name2url = {
@@ -78,60 +68,90 @@ class Scraper:
 
         self.index_progress_bar = 1
 
+    def select_browser(self, internet_browser):
+        if internet_browser == 'google_chrome':
+            if self.current_platform == 'Darwin':
+                self.directory_driver = os.path.join(self.root_directory, 'ChromeDriver', 'ChromeDriverMac')
+            elif self.current_platform == 'Windows':
+                self.directory_driver = os.path.join(self.root_directory, 'ChromeDriver', 'ChromeDriverWin.exe')
+            else:
+                self.directory_driver = os.path.join(self.root_directory, 'ChromeDriver', 'ChromeDriverLin')
+
+            # options handler for Google Chrome
+            self.options = selenium.webdriver.chrome.options.Options()
+
+            # sets Chrome to run Headless (without showing the navigator window while running)
+            # self.options.add_argument('--window-size=1920,1080')
+            # self.options.add_argument('--start-maximized')
+            self.options.add_argument('--headless')
+            # self.options.add_argument('--no-sandbox')
+            # self.options.add_argument('--disable-gpu')
+
+            self.driver = webdriver.Chrome(self.directory_driver, options=self.options)
+
+        elif internet_browser == 'firefox':
+            if self.current_platform == 'Darwin':
+                self.directory_driver = os.path.join(self.root_directory, 'FirefoxDriver', 'FirefoxDriverMac')
+            elif self.current_platform == 'Windows':
+                self.directory_driver = os.path.join(self.root_directory, 'FirefoxDriver', 'FirefoxDriverWin.exe')
+            else:
+                self.directory_driver = os.path.join(self.root_directory, 'ChromeDriver', 'FirefoxDriverLin')
+
+            # options handler for Firefox
+            self.options = selenium.webdriver.firefox.options.Options()
+
+            # sets Firefox to run Headless (without showing the navigator window while running)
+            self.options.headless = True
+
+            self.driver = webdriver.Firefox(executable_path=self.directory_driver, options=self.options)
+
     def search_main_pix(self):
         print("Searching in main PIX")
 
-        driver = webdriver.Chrome(self.directory_chromedriver, chrome_options=self.options)
-
-        driver.get('https://www.bcb.gov.br/estabilidadefinanceira/pix')
+        self.driver.get('https://www.bcb.gov.br/estabilidadefinanceira/pix')
+        time.sleep(10)
 
         self.pix_descriptions.append("evolutive:")
         for i in range(10):
             try:
-                item = driver.find_element_by_xpath(
-                    '//*[@id="headingagenda_evolutiva_pix' + str(i) + '"]/button').text
+                item = self.driver.find_element_by_xpath(
+                    '//*[@id="headingagenda_evolutiva_pix' + str(i) + '"]/button/span[1]').text
 
                 self.pix_descriptions.append(copy.copy(item))
             except:
                 pass
 
-        # closes Google Chrome
-        driver.quit()
-
-    def search_communicatiions_pix(self):
+    def search_communications_pix(self):
         print("Searching in communications PIX")
 
-        driver = webdriver.Chrome(self.directory_chromedriver, chrome_options=self.options)
-
-        driver.get('https://www.bcb.gov.br/estabilidadefinanceira/comunicacaodados')
+        self.driver.get('https://www.bcb.gov.br/estabilidadefinanceira/comunicacaodados')
+        time.sleep(10)
 
         self.pix_descriptions.append("tecnical documents list")
         for i in range(20):
             try:
-                item = driver.find_element_by_xpath(
+                item = self.driver.find_element_by_xpath(
                     '/html/body/app-root/app-root/div/div/main/dynamic-comp/div/div/div[1]/div/div[2]/ul/li[' + str(
                         i + 1) + ']/a').text
                 self.pix_descriptions.append(copy.copy(item))
             except:
                 pass
 
-        self.get_catalog_href(driver)
+        self.get_catalog_href()
 
         self.pix_descriptions.append("catalog:")
 
-        self.pix_descriptions.append(driver.find_element_by_xpath(
+        self.pix_descriptions.append(self.driver.find_element_by_xpath(
             '/html/body/app-root/app-root/div/div/main/dynamic-comp/div/div/div[1]/div/h4[2]').text)
 
         for i in range(30):
             try:
-                item = driver.find_element_by_xpath(
+                item = self.driver.find_element_by_xpath(
                     '/html/body/app-root/app-root/div/div/main/dynamic-comp/div/div/div[1]/div/div[4]/ul/li[' + str(
                         i + 1) + ']').text
                 self.pix_descriptions.append(copy.copy(item))
             except:
                 pass
-        # closes the Google Chrome
-        driver.quit()
 
     # download url items to temp directory
     def download_url_files(self):
@@ -146,18 +166,11 @@ class Scraper:
             print(name)
 
     # search for names and urls related with catalog
-    def get_catalog_href(self, driver_input=None):
-
-        if driver_input is None:
-            driver = webdriver.Chrome(self.directory_chromedriver, chrome_options=self.options)
-
-            driver.get('https://www.bcb.gov.br/estabilidadefinanceira/comunicacaodados')
-        else:
-            driver = driver_input
+    def get_catalog_href(self):
 
         for i in range(20):
             try:
-                item = driver.find_element_by_xpath(
+                item = self.driver.find_element_by_xpath(
                     '/html/body/app-root/app-root/div/div/main/dynamic-comp/div/div/div[1]/div/div[2]/ul/li[' + str(
                         i + 1) + ']/a')
                 name = item.text[:item.text.rfind(' (')]
@@ -167,30 +180,26 @@ class Scraper:
             except:
                 pass
 
-        # closes Google Chrome
-        if driver_input is None:
-            driver.quit()
-
         return self.name2url
 
     def save_descriptions(self):
         self.search_main_pix()
-        self.search_communicatiions_pix()
+        self.search_communications_pix()
 
         string_pix_description = '\n'.join(map(str, self.pix_descriptions))
 
-        file = open(os.path.join(self.temp_directory, "description.txt"), "w")
+        file = open(os.path.join(self.temp_directory, 'description.txt'), 'w')
         file.writelines(string_pix_description)
         file.close()
 
     def get_version_path_name(self, name, type_file):
         version = 0
-        new_path = os.path.join(self.old_versions_directory, name + "V" + str(version) + type_file)
+        new_path = os.path.join(self.old_versions_directory, name + 'V' + str(version) + type_file)
         last_path = None
         while os.path.exists(new_path):
-            last_path = os.path.join(self.old_versions_directory, name + "V" + str(version) + type_file)
+            last_path = os.path.join(self.old_versions_directory, name + 'V' + str(version) + type_file)
             version += 1
-            new_path = os.path.join(self.old_versions_directory, name + "V" + str(version) + type_file)
+            new_path = os.path.join(self.old_versions_directory, name + 'V' + str(version) + type_file)
 
         return new_path, last_path
 
@@ -223,7 +232,9 @@ class Scraper:
             "The program will download and compare all main descriptions and regulations, it could take a fill minutes")
 
         self.save_descriptions()
-        # self.get_catalog_href()
+
+        self.driver.quit()
+
         self.download_url_files()
 
         # read last version in path old versions
@@ -233,7 +244,10 @@ class Scraper:
 
         # compare descriptions
         if last_path is not None:
-            if not txt_is_equal(os.path.join(self.temp_directory, "description.txt"), last_path):
+            if txt_is_equal(os.path.join(self.temp_directory, "description.txt"), last_path):
+                print("descriptions equal")
+
+            else:
                 shutil.copy(os.path.join(self.temp_directory, "description.txt"), new_path)
                 notify("Alert", 'description has been modify!')
                 print("descriptions has been modify!")
@@ -242,6 +256,7 @@ class Scraper:
 
                 if send_to_email:
                     email_sender(new_path, "Description")
+
         # new file will always save
         else:
             notify("Alert", 'description has been modify!')
@@ -249,7 +264,7 @@ class Scraper:
             descriptions_changed = True
             if send_to_email:
                 email_sender(new_path, "Description.txt")
-            print("descriptions has been modify!")
+            print("descriptions equal")
 
         # Compare files
         if self.name2url:

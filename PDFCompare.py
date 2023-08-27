@@ -9,7 +9,7 @@ def pdf2text(pdf_path, return_pages=False):
     pdffileobj = open(pdf_path, 'rb')
 
     # create reader variable that will read the pdffileobj
-    pdfreader = PyPDF2.PdfFileReader(pdffileobj)
+    pdfreader = PyPDF2.PdfFileReader(pdffileobj, strict=False)
 
     # This will store the number of pages of this pdf file
     size = pdfreader.numPages

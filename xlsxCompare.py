@@ -87,9 +87,9 @@ def xlsx_is_equal(xlsx1_path, xlsx2_path, output_path):
             output.append(diff)
             output_sheet_names.append(xl.sheet_names[i])
 
-    # if all sheets are equal return False
+    # if all sheets are equal return True, files are equal
     if output == []:
-        return False
+        return True
 
     # if there is a difference in the sheets, write every difference output in one sheet with the sheet name
     with pandas.ExcelWriter(output_path) as writer:
@@ -97,7 +97,7 @@ def xlsx_is_equal(xlsx1_path, xlsx2_path, output_path):
         for i in range(len(output)):
             output[i].style.applymap(highlight_cells).to_excel(writer, sheet_name=output_sheet_names[i], engine='openpyxl', index=False)
 
-    return True
+    return False
 
 # names = ['REDA041', 'REDA031', 'REDA022', 'REDA017', 'REDA016', 'REDA014', 'PIBR001', 'PIBR002', 'PAIN014', 'PAIN013', 'PACS008', 'PACS004', 'PACS002', 'HEAD001', 'CAMT060', 'CAMT054', 'CAMT053', 'CAMT052', 'CAMT014', 'ADMI004', 'ADMI002']
 #
