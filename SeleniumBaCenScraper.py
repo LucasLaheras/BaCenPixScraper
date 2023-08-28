@@ -4,6 +4,8 @@ import shutil
 import selenium.webdriver.firefox.options
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
 import os
 import platform
 import sys
@@ -70,51 +72,42 @@ class Scraper:
 
     def select_browser(self, internet_browser):
         if internet_browser == 'google_chrome':
-            if self.current_platform == 'Darwin':
-                self.directory_driver = os.path.join(self.root_directory, 'ChromeDriver', 'ChromeDriverMac')
-            elif self.current_platform == 'Windows':
-                self.directory_driver = os.path.join(self.root_directory, 'ChromeDriver', 'ChromeDriverWin.exe')
-            else:
-                self.directory_driver = os.path.join(self.root_directory, 'ChromeDriver', 'ChromeDriverLin')
-
-            # options handler for Google Chrome
+            # options handler for chrome to run Headless
             self.options = selenium.webdriver.chrome.options.Options()
-
-            # sets Chrome to run Headless (without showing the navigator window while running)
-            # self.options.add_argument('--window-size=1920,1080')
-            # self.options.add_argument('--start-maximized')
-            self.options.add_argument('--headless')
-            # self.options.add_argument('--no-sandbox')
-            # self.options.add_argument('--disable-gpu')
-
-            self.driver = webdriver.Chrome(self.directory_driver, options=self.options)
-
-        elif internet_browser == 'firefox':
-            if self.current_platform == 'Darwin':
-                self.directory_driver = os.path.join(self.root_directory, 'FirefoxDriver', 'FirefoxDriverMac')
-            elif self.current_platform == 'Windows':
-                self.directory_driver = os.path.join(self.root_directory, 'FirefoxDriver', 'FirefoxDriverWin.exe')
-            else:
-                self.directory_driver = os.path.join(self.root_directory, 'ChromeDriver', 'FirefoxDriverLin')
-
-            # options handler for Firefox
-            self.options = selenium.webdriver.firefox.options.Options()
-
-            # sets Firefox to run Headless (without showing the navigator window while running)
             self.options.headless = True
 
-            self.driver = webdriver.Firefox(executable_path=self.directory_driver, options=self.options)
+            self.driver = webdriver.Chrome(options=self.options)
+
+        elif internet_browser == 'firefox':
+            # options handler for Firefox to run Headless
+            self.options = selenium.webdriver.firefox.options.Options()
+            self.options.headless = True
+
+            self.driver = webdriver.Firefox(options=self.options)
+
+        elif internet_browser == 'safari':
+            self.options = selenium.webdriver.safari.options.Options()
+            self.options.headless = True
+
+            self.driver = selenium.webdriver.Safari(options=self.options)
+
+        elif internet_browser == 'edge':
+            self.options = selenium.webdriver.edge.options.Options()
+            self.options.headless = True
+
+            self.driver = selenium.webdriver.Edge(options=self.options)
+
 
     def search_main_pix(self):
         print("Searching in main PIX")
 
         self.driver.get('https://www.bcb.gov.br/estabilidadefinanceira/pix')
-        time.sleep(10)
+        WebDriverWait(self.driver, 10).until(lambda x: x.find_element(By.XPATH, '//*[@id="headingagenda_evolutiva_pix0"]/button/span[1]'))
 
         self.pix_descriptions.append("evolutive:")
         for i in range(10):
             try:
-                item = self.driver.find_element_by_xpath(
+                item = self.driver.find_element(By.XPATH,
                     '//*[@id="headingagenda_evolutiva_pix' + str(i) + '"]/button/span[1]').text
 
                 self.pix_descriptions.append(copy.copy(item))
@@ -125,12 +118,15 @@ class Scraper:
         print("Searching in communications PIX")
 
         self.driver.get('https://www.bcb.gov.br/estabilidadefinanceira/comunicacaodados')
-        time.sleep(10)
+        WebDriverWait(self.driver, 10).until(lambda x: x.find_element(By.XPATH,
+                    '/html/body/app-root/app-root/div/div/main/dynamic-comp/div/div/div[1]/div/div[2]/ul/li[1]/a'))
+
 
         self.pix_descriptions.append("tecnical documents list")
+
         for i in range(20):
             try:
-                item = self.driver.find_element_by_xpath(
+                item = self.driver.find_element(By.XPATH,
                     '/html/body/app-root/app-root/div/div/main/dynamic-comp/div/div/div[1]/div/div[2]/ul/li[' + str(
                         i + 1) + ']/a').text
                 self.pix_descriptions.append(copy.copy(item))
@@ -141,12 +137,12 @@ class Scraper:
 
         self.pix_descriptions.append("catalog:")
 
-        self.pix_descriptions.append(self.driver.find_element_by_xpath(
+        self.pix_descriptions.append(self.driver.find_element(By.XPATH,
             '/html/body/app-root/app-root/div/div/main/dynamic-comp/div/div/div[1]/div/h4[2]').text)
 
         for i in range(30):
             try:
-                item = self.driver.find_element_by_xpath(
+                item = self.driver.find_element(By.XPATH,
                     '/html/body/app-root/app-root/div/div/main/dynamic-comp/div/div/div[1]/div/div[4]/ul/li[' + str(
                         i + 1) + ']').text
                 self.pix_descriptions.append(copy.copy(item))
@@ -170,7 +166,7 @@ class Scraper:
 
         for i in range(20):
             try:
-                item = self.driver.find_element_by_xpath(
+                item = self.driver.find_element(By.XPATH,
                     '/html/body/app-root/app-root/div/div/main/dynamic-comp/div/div/div[1]/div/div[2]/ul/li[' + str(
                         i + 1) + ']/a')
                 name = item.text[:item.text.rfind(' (')]
