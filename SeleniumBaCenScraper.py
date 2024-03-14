@@ -56,10 +56,11 @@ class Scraper:
             "Manual de Tempos do Pix": "https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/IX_ManualdeTemposdoPix.pdf",
             "Manual Operacional do DICT": "https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/X_ManualOperacionaldoDICT.pdf",
             "Manual de Resolucao de Disputas": "https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/XI_Manual_de_resolucao_de_disputa.pdf",
-            "Guia do MED": "https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Guia%20MED%20-%20vers%C3%A3o%201.0.pdf",
+            "Guia do MED": "https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Guia%20MED%20-%20vers%C3%A3o%202.0.pdf",
             "Guia do saque e troco": "https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Guia_Implementacao_Pix_Saque_Troco.pdf",
             "Guia de implementação do canal secundário": "https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Guia_Implementacao_Canal_Secundario_Transmissao_Mensagens.pdf",
-            "Lista de geracao e leitura de QRcodes": "https://www.bcb.gov.br/content/estabilidadefinanceira/pix/ListadeverificacaoparageracaoevalidacaodeQRCodes.pdf"
+            "Manual do BR Code": "https://www.bcb.gov.br/content/estabilidadefinanceira/spb_docs/ManualBRCode.pdf",
+            "Manual de Segurança do PIX": "https://www.bcb.gov.br/content/estabilidadefinanceira/cedsfn/Manual_de_Seguranca_PIX.pdf"
         }
 
         self.ISO2022 = ['REDA041', 'REDA031', 'REDA022', 'REDA017', 'REDA016', 'REDA014', 'PIBR001', 'PIBR002',
@@ -158,8 +159,9 @@ class Scraper:
             for name, url in self.name2url.items():
                 type_file = url[url.rfind('.'):]
                 urllib.request.urlretrieve(url, os.path.join(self.temp_directory, name + type_file))
+                print("Download " + name)
         except:
-            print(name)
+            print("ERROR Download " + name)
 
     # search for names and urls related with catalog
     def get_catalog_href(self):

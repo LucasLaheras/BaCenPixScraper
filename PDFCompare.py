@@ -14,7 +14,7 @@ def pdf2text(pdf_path, return_pages=False):
     # This will store the number of pages of this pdf file
     size = pdfreader.numPages
 
-    for j in range(size):
+    for j in range(int((3/4)*size)):
         # variable that will select the selected pages
         pageobj = pdfreader.getPage(j)
 
