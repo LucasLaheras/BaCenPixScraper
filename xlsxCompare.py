@@ -74,13 +74,16 @@ def xlsx_is_equal(xlsx1_path, xlsx2_path, output_path):
         # read file 1 and replace na with 0
         df1 = pandas.read_excel(xlsx1_path, sheet_name=i)
         df1 = df1.fillna(0)
+        try:
+            # read file 2 and replace na with 0
+            df2 = pandas.read_excel(xlsx2_path, sheet_name=i)
+            df2 = df2.fillna(0)
 
-        # read file 2 and replace na with 0
-        df2 = pandas.read_excel(xlsx2_path, sheet_name=i)
-        df2 = df2.fillna(0)
-
-        # check if is equal and return the differences rows
-        equal, diff = sheet_is_equal(df1, df2)
+            # check if is equal and return the differences rows
+            equal, diff = sheet_is_equal(df1, df2)
+        except:
+            equal = False
+            diff = df1
 
         # if is not iqual append to the arrays of output and sheet names
         if not equal:

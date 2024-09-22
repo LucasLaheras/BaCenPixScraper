@@ -65,7 +65,8 @@ class Scraper:
 
         self.ISO2022 = ['REDA041', 'REDA031', 'REDA022', 'REDA017', 'REDA016', 'REDA014', 'PIBR001', 'PIBR002',
                         'PAIN014', 'PAIN013', 'PACS008', 'PACS004', 'PACS002', 'HEAD001', 'CAMT060', 'CAMT054',
-                        'CAMT053', 'CAMT052', 'CAMT014', 'ADMI004', 'ADMI002']
+                        'CAMT053', 'CAMT052', 'CAMT014', 'ADMI004', 'ADMI002', 'PAIN009', 'PAIN011', 'PAIN012',
+                        'CAMT055', 'CAMT029']
 
         self.pix_descriptions = []
 
@@ -275,6 +276,8 @@ class Scraper:
 
                 # compare pdf
                 if type_file == '.pdf':
+                    # if name == "Requisitos Minimos de Experiencia do Usuario":
+                    #     print("pulou " + name + type_file)
                     if last_path is None or not(pdf_is_equal(os.path.join(self.temp_directory, name + type_file),
                                                              last_path)):
                         notify("Alert", name + type_file + ' has been modify!')
@@ -287,10 +290,13 @@ class Scraper:
                         print(name + type_file + ' equal')
 
                 # compare catalog zip
-                elif type_file == '.zip' and descriptions_changed and ('Definições detalhadas das mensagens do Catálogo de Mensagens do SPI' in name) and catalog_old is not None:
+                elif descriptions_changed and catalog_old is not None and type_file == '.zip' and ('Definições detalhadas das mensagens do Catálogo de Mensagens do SPI' in name):
+                    print("compared " + catalog_old)
                     self.compare_catalog(os.path.join(self.temp_directory, name + type_file), catalog_old)
+                    catalog_old = os.path.join(self.temp_directory, name + type_file)
+                    print("with " + catalog_old + "\n")
                     pass
-                elif type_file == '.zip' and descriptions_changed and ('Definições detalhadas das mensagens do Catálogo de Mensagens do SPI' in name):
+                elif descriptions_changed and type_file == '.zip' and ('Definições detalhadas das mensagens do Catálogo de Mensagens do SPI' in name):
                     catalog_old = os.path.join(self.temp_directory, name + type_file)
                     pass
 
