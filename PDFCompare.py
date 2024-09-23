@@ -7,7 +7,7 @@ def pdf2text(pdf_path, return_pages=False):
 
     # opening method will be rb
     pdffileobj = open(pdf_path, 'rb')
-
+    # print( 'lendo '+ pdf_path)
     # create reader variable that will read the pdffileobj
     pdfreader = PyPDF2.PdfFileReader(pdffileobj, strict=False)
 
@@ -20,6 +20,7 @@ def pdf2text(pdf_path, return_pages=False):
 
         # this text variable will store all text data from pdf file
         text = text + pageobj.extractText()
+    pdffileobj.close()
 
     pdffileobj = 0
     pdfreader = 0

@@ -16,6 +16,7 @@ from xlsxCompare import xlsx_is_equal
 from txtCompare import txt_is_equal
 import time
 import zipfile
+import pickle
 
 
 def notify(title, text):
@@ -226,11 +227,44 @@ class Scraper:
                 notify("Alert", item + ' has been modify!')
                 print(item + ' has been modify!')
 
+    def save_regulations(self):
+        # Navigate to the website
+        self.driver.get("https://www.bcb.gov.br/estabilidadefinanceira/buscanormas?conteudo=pix&tipoDocumento=Todos")
+
+        # Wait for the page to load
+        self.wait = WebDriverWait(self.driver, 10)
+
+        # Wait for the element to be present
+        WebDriverWait(self.driver, 10).until(
+            lambda x: x.find_element(By.CLASS_NAME, "encontrados")
+        )
+
+        item = self.driver.find_element(By.CLASS_NAME, "encontrados")
+
+        normas_list_items = item.text.split("\n")
+
+        items_set = set()
+        conjunto = ""
+        i = 0
+        for item in normas_list_items:
+            conjunto = conjunto + item + "\n"
+            i += 1
+
+            if i == 4:
+                items_set.add(conjunto)
+                conjunto = ""
+                i = 0
+        with open(os.path.join(self.temp_directory, 'Binary Regulations.txt'), 'wb') as f:
+            pickle.dump(items_set, f)
+        f.close()
+
     def compare_all(self, send_to_email=False):
         print(
             "The program will download and compare all main descriptions and regulations, it could take a fill minutes")
 
         self.save_descriptions()
+
+        self.save_regulations()
 
         self.driver.quit()
 
@@ -264,6 +298,41 @@ class Scraper:
             if send_to_email:
                 email_sender(new_path, "Description.txt")
             print("descriptions equal")
+
+        # Compare normas
+        binary_new_path, binary_last_path = self.get_version_path_name("Binary Regulations", ".txt")
+        new_path, last_path = self.get_version_path_name("Regulations", ".txt")
+
+        # Load existing items from the text file
+        try:
+            with open(binary_last_path, "rb") as f:
+                existing_items = pickle.load(f)
+            f.close()
+        except:
+            existing_items = set()
+
+        with open(os.path.join(self.temp_directory, 'Binary Regulations.txt'), "rb") as f:
+            items_set = pickle.load(f)
+        f.close()
+
+        # Identify new items by comparing the items in items_set with the existing_items and selecting the ones that are not already present
+        items_set.difference_update(existing_items)
+
+        if len(items_set) != 0:
+            with open(binary_new_path, 'wb') as f:
+                pickle.dump(items_set, f)
+
+            # Print the new items
+            notify("Alert", "New Regulations have been found!")
+            print("New Regulations have been found!")
+            with open(new_path, 'w', encoding="utf-8") as f:
+                for item in items_set:
+                    f.write(item)
+                    print(item)
+            f.close()
+        else:
+            print("Regulations equal")
+
 
         # Compare files
         if self.name2url:
