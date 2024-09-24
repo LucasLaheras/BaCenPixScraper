@@ -1,6 +1,6 @@
 import copy
 import shutil
-
+# import win10toast
 import selenium.webdriver.firefox.options
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -10,6 +10,7 @@ import os
 import platform
 import sys
 from PDFCompare import pdf_is_equal
+from PDFCompare import compare_pdfs
 import urllib.request
 from EmailSender import email_sender
 from xlsxCompare import xlsx_is_equal
@@ -23,6 +24,8 @@ def notify(title, text):
     os.system("""
               osascript -e 'display notification "{}" with title "{}"'
               """.format(text, title))
+    # toaster = win10toast.ToastNotifier()
+    # toaster.show_toast(title, "The following items were found: {}".format(", ".join(text)))
 
 
 class Scraper:
@@ -157,13 +160,14 @@ class Scraper:
         print("Downloading files")
         name = None
 
-        try:
-            for name, url in self.name2url.items():
+
+        for name, url in self.name2url.items():
+            try:
                 type_file = url[url.rfind('.'):]
                 urllib.request.urlretrieve(url, os.path.join(self.temp_directory, name + type_file))
                 print("Download " + name)
-        except:
-            print("ERROR Download " + name)
+            except:
+                print("ERROR Download " + name)
 
     # search for names and urls related with catalog
     def get_catalog_href(self):
@@ -299,7 +303,7 @@ class Scraper:
                 email_sender(new_path, "Description.txt")
             print("descriptions equal")
 
-        # Compare normas
+        # Compare Regulations
         binary_new_path, binary_last_path = self.get_version_path_name("Binary Regulations", ".txt")
         new_path, last_path = self.get_version_path_name("Regulations", ".txt")
 
@@ -315,12 +319,15 @@ class Scraper:
             items_set = pickle.load(f)
         f.close()
 
+        # Get union of sets to save all regulations to future compares
+        union_set = items_set.union(existing_items)
+
         # Identify new items by comparing the items in items_set with the existing_items and selecting the ones that are not already present
         items_set.difference_update(existing_items)
 
         if len(items_set) != 0:
             with open(binary_new_path, 'wb') as f:
-                pickle.dump(items_set, f)
+                pickle.dump(union_set, f)
 
             # Print the new items
             notify("Alert", "New Regulations have been found!")
@@ -345,9 +352,7 @@ class Scraper:
 
                 # compare pdf
                 if type_file == '.pdf':
-                    # if name == "Requisitos Minimos de Experiencia do Usuario":
-                    #     print("pulou " + name + type_file)
-                    if last_path is None or not(pdf_is_equal(os.path.join(self.temp_directory, name + type_file),
+                    if last_path is None or not(compare_pdfs(os.path.join(self.temp_directory, name + type_file),
                                                              last_path)):
                         notify("Alert", name + type_file + ' has been modify!')
                         print(name + type_file + ' has been modify!')
