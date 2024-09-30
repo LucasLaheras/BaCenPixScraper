@@ -1,31 +1,32 @@
 import copy
 import shutil
-# import win10toast
 import selenium.webdriver.firefox.options
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
-import os
-import platform
 import sys
-from PDFCompare import pdf_is_equal
 from PDFCompare import compare_pdfs
 import urllib.request
 from EmailSender import email_sender
-from xlsxCompare import xlsx_is_equal
 from txtCompare import txt_is_equal
 import time
 import zipfile
 import pickle
-
+from CompareDir import compare_files
+import os
+import platform
 
 def notify(title, text):
-    os.system("""
-              osascript -e 'display notification "{}" with title "{}"'
-              """.format(text, title))
-    # toaster = win10toast.ToastNotifier()
-    # toaster.show_toast(title, "The following items were found: {}".format(", ".join(text)))
+    if platform.system() == 'Darwin':  # macOS
+        os.system("""
+                  osascript -e 'display notification "{}" with title "{}"'
+                  """.format(text, title))
+    elif platform.system() == 'Windows':  # Windows
+        import ctypes
+        ctypes.windll.user32.MessageBoxW(0, text, title, 0)
+    elif platform.system() == 'Linux':  # Linux
+        os.system('notify-send "{}" "{}"'.format(title, text))
 
 
 class Scraper:
@@ -38,9 +39,11 @@ class Scraper:
 
         # saves a temporary directory
         self.temp_directory = os.path.join(self.root_directory, "temp")
+        os.makedirs(os.path.dirname(self.temp_directory), exist_ok=True)
 
         # saves old versions directory
         self.old_versions_directory = os.path.join(self.root_directory, "old versions")
+        os.makedirs(os.path.dirname(self.old_versions_directory), exist_ok=True)
 
         # saves current platform in a string
         self.current_platform = platform.system()
@@ -207,30 +210,6 @@ class Scraper:
 
         return new_path, last_path
 
-    def compare_catalog(self, catalog_new, catalog_old):
-        # unzip catalog files
-        with zipfile.ZipFile(catalog_new, 'r') as zip:
-            zip.extractall(self.temp_directory)
-
-        with zipfile.ZipFile(catalog_old, 'r') as zip:
-            zip.extractall(self.temp_directory)
-
-        catalog_new = catalog_new.replace('.zip', '').replace('Definições detalhadas das mensagens do Catálogo de Mensagens do SPI - versão ', 'v')
-        catalog_old = catalog_old.replace('.zip', '').replace('Definições detalhadas das mensagens do Catálogo de Mensagens do SPI - versão ', 'v')
-
-        for item in self.ISO2022:
-            diff_file_name = catalog_new[catalog_new.rfind('/') + 1:] + ' ' + item + ' diferences.xlsx'
-
-            equal = xlsx_is_equal(os.path.join(catalog_new, 'xlsx', item + '.xlsx'),
-                                  os.path.join(catalog_old, 'xlsx', item + '.xlsx'),
-                                  os.path.join(self.old_versions_directory, diff_file_name))
-
-            if equal:
-                print(item + ' equal')
-            else:
-                notify("Alert", item + ' has been modify!')
-                print(item + ' has been modify!')
-
     def save_regulations(self):
         # Navigate to the website
         self.driver.get("https://www.bcb.gov.br/estabilidadefinanceira/buscanormas?conteudo=pix&tipoDocumento=Todos")
@@ -365,12 +344,26 @@ class Scraper:
 
                 # compare catalog zip
                 elif descriptions_changed and catalog_old is not None and type_file == '.zip' and ('Definições detalhadas das mensagens do Catálogo de Mensagens do SPI' in name):
-                    print("compared " + catalog_old)
-                    self.compare_catalog(os.path.join(self.temp_directory, name + type_file), catalog_old)
-                    catalog_old = os.path.join(self.temp_directory, name + type_file)
-                    print("with " + catalog_old + "\n")
+                    catalog_new = os.path.join(self.temp_directory, name + type_file)
+                    # unzip catalog files
+                    with zipfile.ZipFile(catalog_new, 'r') as zip:
+                        zip.extractall(self.temp_directory)
+
+                    catalog_new = catalog_new.replace('.zip', '').replace(
+                        'Definições detalhadas das mensagens do Catálogo de Mensagens do SPI - versão ', 'v')
+
+                    print(f"\n\n\nComparing {os.path.basename(catalog_new)} with {os.path.basename(catalog_old)}")
+
+                    compare_files(catalog_new, catalog_old, os.path.join(self.old_versions_directory, "Diferença Catalogo " + os.path.basename(catalog_new)))
+
+                    catalog_old = str(catalog_new)
                     pass
                 elif descriptions_changed and type_file == '.zip' and ('Definições detalhadas das mensagens do Catálogo de Mensagens do SPI' in name):
                     catalog_old = os.path.join(self.temp_directory, name + type_file)
+                    with zipfile.ZipFile(catalog_old, 'r') as zip:
+                        zip.extractall(self.temp_directory)
+
+                    catalog_old = catalog_old.replace('.zip', '').replace(
+                        'Definições detalhadas das mensagens do Catálogo de Mensagens do SPI - versão ', 'v')
                     pass
 
