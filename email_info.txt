@@ -1,3 +1,0 @@
-email_sender@test.com
-password
-email_reciver@test.com

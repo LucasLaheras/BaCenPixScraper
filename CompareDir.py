@@ -8,6 +8,8 @@ warnings.simplefilter("ignore", UserWarning)
 
 
 def compare_files(new_dir, old_dir, output_dir):
+    files_changed = []
+
     # Criar dicionários para armazenar arquivos com caminhos relativos
     files_dict_new = {}
     files_dict_old = {}
@@ -40,14 +42,17 @@ def compare_files(new_dir, old_dir, output_dir):
                 changed = compare_xlsx_files(new_file_path, old_file_path, output_file_path)
 
                 if changed:
-                    print(f"Arquivo {rel_file} foi alterado!")
+                    print(f"{rel_file} file has been changed")
+                    files_changed.append(f"{rel_file} file has been changed")
+
             else:
                 # Implementar outras comparações de arquivos, se necessário
                 pass
         else:
             os.makedirs(os.path.dirname(output_file_path), exist_ok=True)
             shutil.copy(new_file_path, output_file_path)
-            print(f"Arquivo {rel_file} é novo no novo diretório.")
+            print(f"New {rel_file} file has been added")
+            files_changed.append(f"New {rel_file} file has been added")
 
     os.makedirs(os.path.join(os.path.dirname(output_dir), "deleted"), exist_ok=True)
 
@@ -61,7 +66,10 @@ def compare_files(new_dir, old_dir, output_dir):
             os.makedirs(os.path.dirname(output_file_path), exist_ok=True)
             shutil.copy(old_file_path, output_file_path)
 
-            print(f"Arquivo {rel_file} foi deletado no novo diretório.")
+            print(f"{rel_file} file was deleted")
+            files_changed.append(f"{rel_file} file was deleted")
+
+    return files_changed
 
 
 def compare_xlsx_files(new_file, old_file, output_file):

@@ -1,5 +1,50 @@
 from SeleniumBaCenScraper import Scraper
 import os
+from TeamsSender import TeamsNotifier
+from inputimeout import inputimeout, TimeoutOccurred
+
+def input_with_timeout(prompt, timeout):
+    """
+    Solicita entrada do usuário com um tempo limite.
+
+    Args:
+        prompt (str): Mensagem exibida ao usuário.
+        timeout (int): Tempo limite em segundos.
+
+    Returns:
+        str or None: Entrada do usuário ou None se o tempo expirar.
+    """
+
+    try:
+        ans = inputimeout(prompt=prompt, timeout=timeout)
+        return ans
+    except:
+        print("Input timeout. Defaulting to None.")
+        return None
+
+def get_teams_webhook_url():
+    teams_webhook_url = None
+    if os.path.exists('teams_webhook_url.txt'):
+        with open('teams_webhook_url.txt', 'r') as f:
+            teams_webhook_url = f.read()
+    else:
+        answer_time = 30
+
+        print("Select the notification method:")
+        print("1. Teams incoming webhook")
+        print("2. None")
+        print("Note: The first execution of items will not trigger a notification.")
+        choice = input_with_timeout(f"Enter the number of your choice (1/2) (you have {answer_time} seconds to answer): ", answer_time)
+
+        if choice == '1':
+            teams_webhook_url = input("Enter teams webhook url: ")
+            with open('teams_webhook_url.txt', 'w') as f:
+                f.write(teams_webhook_url)
+            return teams_webhook_url
+        if choice != '2':
+            print("Invalid choice. Defaulting to None.")
+        return None
+
 
 def get_file_path():
     file_path = None
@@ -42,7 +87,12 @@ def get_browser():
 if __name__ == '__main__':
     file_path = get_file_path()
     browser = get_browser()
-    C = Scraper(file_path, browser)
+    teams_webhook_url = get_teams_webhook_url()
+    if teams_webhook_url:
+        teams_notifier = TeamsNotifier(webhook_url=teams_webhook_url)
+    else:
+        teams_notifier = None
+    C = Scraper(file_path, browser, teams_notifier)
 
-    C.compare_all(send_to_email=False)
+    C.compare_all()
     # C.search_main_pix()

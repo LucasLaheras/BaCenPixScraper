@@ -8,7 +8,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 import sys
 from PDFCompare import compare_pdfs
 import urllib.request
-from EmailSender import email_sender
 from txtCompare import txt_is_equal
 import time
 import zipfile
@@ -16,6 +15,9 @@ import pickle
 from CompareDir import compare_files
 import os
 import platform
+import threading
+from selenium.webdriver.support import expected_conditions as EC
+
 
 def notify(title, text):
     if platform.system() == 'Darwin':  # macOS
@@ -23,14 +25,23 @@ def notify(title, text):
                   osascript -e 'display notification "{}" with title "{}"'
                   """.format(text, title))
     elif platform.system() == 'Windows':  # Windows
-        import ctypes
-        ctypes.windll.user32.MessageBoxW(0, text, title, 0)
+        import win10toast
+        toaster = win10toast.ToastNotifier()
+        toaster.show_toast(title, text)
     elif platform.system() == 'Linux':  # Linux
         os.system('notify-send "{}" "{}"'.format(title, text))
 
 
+# To avoid blocking the program, run the notification in a separate thread
+def notify_async(title, text, teams_notifier=None):
+    threading.Thread(target=notify, args=(title, text)).start()
+
+    if teams_notifier:
+        threading.Thread(target=teams_notifier.send_message, args=(title, text)).start()
+
+
 class Scraper:
-    def __init__(self, root_directory, internet_browser='google_chrome'):
+    def __init__(self, root_directory, internet_browser='google_chrome', teams_notifier=None):
         # increase the recursion limit to handle very large searches
         sys.setrecursionlimit(5000)
 
@@ -63,19 +74,15 @@ class Scraper:
             "Manual de Tempos do Pix": "https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/IX_ManualdeTemposdoPix.pdf",
             "Manual Operacional do DICT": "https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/X_ManualOperacionaldoDICT.pdf",
             "Manual de Resolucao de Disputas": "https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/XI_Manual_de_resolucao_de_disputa.pdf",
-            "Guia do MED": "https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Guia%20MED%20-%20vers%C3%A3o%202.0.pdf",
             "Guia do saque e troco": "https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Guia_Implementacao_Pix_Saque_Troco.pdf",
             "Guia de implementação do canal secundário": "https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Guia_Implementacao_Canal_Secundario_Transmissao_Mensagens.pdf",
             "Manual do BR Code": "https://www.bcb.gov.br/content/estabilidadefinanceira/spb_docs/ManualBRCode.pdf",
             "Manual de Segurança do PIX": "https://www.bcb.gov.br/content/estabilidadefinanceira/cedsfn/Manual_de_Seguranca_PIX.pdf"
         }
 
-        self.ISO2022 = ['REDA041', 'REDA031', 'REDA022', 'REDA017', 'REDA016', 'REDA014', 'PIBR001', 'PIBR002',
-                        'PAIN014', 'PAIN013', 'PACS008', 'PACS004', 'PACS002', 'HEAD001', 'CAMT060', 'CAMT054',
-                        'CAMT053', 'CAMT052', 'CAMT014', 'ADMI004', 'ADMI002', 'PAIN009', 'PAIN011', 'PAIN012',
-                        'CAMT055', 'CAMT029']
-
         self.pix_descriptions = []
+
+        self.teams_notifier = teams_notifier
 
         self.index_progress_bar = 1
 
@@ -122,6 +129,19 @@ class Scraper:
                 self.pix_descriptions.append(copy.copy(item))
             except:
                 pass
+
+    def get_url_GuiaMED(self):
+        self.driver.get('https://www.bcb.gov.br/estabilidadefinanceira/participantespix')
+
+        xpath = '/html/body/app-root/app-root/div/div/main/dynamic-comp/div/div[3]/div[2]/div/bcb-accordion/div[7]/div/div[2]/div/dynamic-comp/div/ul/li/a'
+        # Wait up to 20 seconds for the element to be present
+        element = WebDriverWait(self.driver, 20).until(
+            EC.presence_of_element_located((By.XPATH, xpath))
+        )
+        href = element.get_attribute('href')
+
+        self.name2url["Guia do MED"] = href
+
 
     def search_communications_pix(self):
         print("Searching in communications PIX")
@@ -241,9 +261,10 @@ class Scraper:
             pickle.dump(items_set, f)
         f.close()
 
-    def compare_all(self, send_to_email=False):
+    def compare_all(self):
         print(
             "The program will download and compare all main descriptions and regulations, it could take a fill minutes")
+        self.get_url_GuiaMED()
 
         self.save_descriptions()
 
@@ -265,22 +286,29 @@ class Scraper:
 
             else:
                 shutil.copy(os.path.join(self.temp_directory, "description.txt"), new_path)
-                notify("Alert", 'description has been modify!')
-                print("descriptions has been modify!")
+                title = "The description has been updated!"
+                message = "The description on the Banco Central do Brasil’s technical documents has been updated. "\
+                          "You can find more information at https://www.bcb.gov.br/estabilidadefinanceira/comunicacaodados"
+
+                with open(last_path, 'r') as f:
+                    last_description = f.read()
+                f.close()
+                with open(new_path, 'r') as f:
+                    new_description = f.read()
+                f.close()
+
+                files_text = "\n\n**Last file:**\n" + "\n" + str(last_description) + "\n\n**New file:**\n" + str(last_description)
+                files_text += "\n\n**New file:**\n" + "\n".join(new_description)
+
+                notify_async(title, message + files_text, self.teams_notifier)
+                print(title)
 
                 descriptions_changed = True
 
-                if send_to_email:
-                    email_sender(new_path, "Description")
-
         # new file will always save
         else:
-            notify("Alert", 'description has been modify!')
             shutil.copy(os.path.join(self.temp_directory, "description.txt"), new_path)
             descriptions_changed = True
-            if send_to_email:
-                email_sender(new_path, "Description.txt")
-            print("descriptions equal")
 
         # Compare Regulations
         binary_new_path, binary_last_path = self.get_version_path_name("Binary Regulations", ".txt")
@@ -308,9 +336,14 @@ class Scraper:
             with open(binary_new_path, 'wb') as f:
                 pickle.dump(union_set, f)
 
+            title = "New Regulations have been found"
+            message = f"This new regulations have been found:\n {str(items_set)} \nYou can find more information at " \
+                      f"https://www.bcb.gov.br/estabilidadefinanceira/buscanormas?conteudo=pix&tipoDocumento=Todos "
+
             # Print the new items
-            notify("Alert", "New Regulations have been found!")
-            print("New Regulations have been found!")
+            notify_async(title, message, self.teams_notifier)
+
+            print(title)
             with open(new_path, 'w', encoding="utf-8") as f:
                 for item in items_set:
                     f.write(item)
@@ -333,17 +366,27 @@ class Scraper:
                 if type_file == '.pdf':
                     if last_path is None or not(compare_pdfs(os.path.join(self.temp_directory, name + type_file),
                                                              last_path)):
-                        notify("Alert", name + type_file + ' has been modify!')
-                        print(name + type_file + ' has been modify!')
+
                         shutil.copy(os.path.join(self.temp_directory, name + type_file), new_path)
-                        if send_to_email:
-                            email_sender(new_path, name + type_file)
-                            time.sleep(10)
+
+                        title = f"New changes in {os.path.basename(new_path)}"
+                        message = f"Changes have been identified in the regulatory file {os.path.basename(new_path)}"
+
+                        notify_async(title, message, self.teams_notifier)
+                        print(title)
                     else:
                         print(name + type_file + ' equal')
 
                 # compare catalog zip
-                elif descriptions_changed and catalog_old is not None and type_file == '.zip' and ('Definições detalhadas das mensagens do Catálogo de Mensagens do SPI' in name):
+                    # A comparação será atualizada no futuro.
+                    #
+                    # Próximos passos:
+                    # - Salvar Catalogos antigos no old versions
+                    # - Realizar comparações dos catalogos relativos (memso nome) da old versions com da temp
+                    # - Realizar comparações de diferenças de catalogos novos temp que não existem na old verions
+
+                elif descriptions_changed and catalog_old is not None and type_file == '.zip' and \
+                        ('Definições detalhadas das mensagens do Catálogo de Mensagens do SPI' in name):
                     catalog_new = os.path.join(self.temp_directory, name + type_file)
                     # unzip catalog files
                     with zipfile.ZipFile(catalog_new, 'r') as zip:
@@ -354,7 +397,16 @@ class Scraper:
 
                     print(f"\n\n\nComparing {os.path.basename(catalog_new)} with {os.path.basename(catalog_old)}")
 
-                    compare_files(catalog_new, catalog_old, os.path.join(self.old_versions_directory, "Diferença Catalogo " + os.path.basename(catalog_new)))
+                    output_dir = os.path.join(self.old_versions_directory, "Diferença Catalogo " + os.path.basename(catalog_new))
+
+                    files_changed = compare_files(catalog_new, catalog_old, output_dir)
+
+                    if len(files_changed) > 0:
+                        title = f"The catalog {os.path.basename(catalog_new)} has changes from {os.path.basename(catalog_old)}"
+                        message_files_chaged = '\n'.join(map(str, files_changed))
+                        message = f"The catalog {os.path.basename(catalog_new)} has changes in this files:\n" + message_files_chaged
+
+                        notify_async(title, message, self.teams_notifier)
 
                     catalog_old = str(catalog_new)
                     pass
