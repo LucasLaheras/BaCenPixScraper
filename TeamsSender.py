@@ -24,6 +24,8 @@ class TeamsNotifier:
             title (str): The title of the message.
             message (str): The body of the message.
         """
+        message.replace('\n', '<br>')
+
         payload = {
             "title": title,
             "text": message
