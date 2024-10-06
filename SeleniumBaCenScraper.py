@@ -33,15 +33,16 @@ def notify(title, text):
 
 
 # To avoid blocking the program, run the notification in a separate thread
-def notify_async(title, text, teams_notifier=None):
+def notify_async(title, text, list_teams_notifier=None):
     threading.Thread(target=notify, args=(title, text)).start()
 
-    if teams_notifier:
-        threading.Thread(target=teams_notifier.send_message, args=(title, text)).start()
+    if list_teams_notifier:
+        for teams_notifier in list_teams_notifier:
+            threading.Thread(target=teams_notifier.send_message, args=(title, text)).start()
 
 
 class Scraper:
-    def __init__(self, root_directory, internet_browser='google_chrome', teams_notifier=None):
+    def __init__(self, root_directory, internet_browser='google_chrome', list_teams_notifier=None):
         # increase the recursion limit to handle very large searches
         sys.setrecursionlimit(5000)
 
@@ -82,7 +83,7 @@ class Scraper:
 
         self.pix_descriptions = []
 
-        self.teams_notifier = teams_notifier
+        self.list_teams_notifier = list_teams_notifier
 
         self.index_progress_bar = 1
 
@@ -230,33 +231,36 @@ class Scraper:
 
         return new_path, last_path
 
-    def save_regulations(self):
-        # Navigate to the website
-        self.driver.get("https://www.bcb.gov.br/estabilidadefinanceira/buscanormas?conteudo=pix&tipoDocumento=Todos")
-
-        # Wait for the page to load
-        self.wait = WebDriverWait(self.driver, 10)
-
-        # Wait for the element to be present
-        WebDriverWait(self.driver, 10).until(
-            lambda x: x.find_element(By.CLASS_NAME, "encontrados")
-        )
-
-        item = self.driver.find_element(By.CLASS_NAME, "encontrados")
-
-        normas_list_items = item.text.split("\n")
+    def save_regulations(self, list_of_website):
 
         items_set = set()
-        conjunto = ""
-        i = 0
-        for item in normas_list_items:
-            conjunto = conjunto + item + "\n"
-            i += 1
 
-            if i == 4:
-                items_set.add(conjunto)
-                conjunto = ""
-                i = 0
+        for website in list_of_website:
+            # Navigate to the website
+            self.driver.get(website)
+
+            # Wait for the page to load
+            self.wait = WebDriverWait(self.driver, 10)
+
+            # Wait for the element to be present
+            WebDriverWait(self.driver, 10).until(
+                lambda x: x.find_element(By.CLASS_NAME, "encontrados")
+            )
+
+            item = self.driver.find_element(By.CLASS_NAME, "encontrados")
+
+            normas_list_items = item.text.split("\n")
+
+            conjunto = ""
+            i = 0
+            for item in normas_list_items:
+                conjunto = conjunto + item + "\n"
+                i += 1
+
+                if i == 4:
+                    items_set.add(conjunto)
+                    conjunto = ""
+                    i = 0
         with open(os.path.join(self.temp_directory, 'Binary Regulations.txt'), 'wb') as f:
             pickle.dump(items_set, f)
         f.close()
@@ -268,7 +272,11 @@ class Scraper:
 
         self.save_descriptions()
 
-        self.save_regulations()
+        self.save_regulations([
+            "https://www.bcb.gov.br/estabilidadefinanceira/buscanormas?conteudo=pix&tipoDocumento=Todos",
+            "https://www.bcb.gov.br/estabilidadefinanceira/buscanormas?conteudo=SPI&tipoDocumento=Todos",
+            "https://www.bcb.gov.br/estabilidadefinanceira/buscanormas?conteudo=DICT&tipoDocumento=Todos"
+        ])
 
         self.driver.quit()
 
@@ -300,7 +308,7 @@ class Scraper:
                 files_text = "\n\n**Last file:**\n" + "\n" + str(last_description) + "\n\n**New file:**\n" + str(last_description)
                 files_text += "\n\n**New file:**\n" + "\n".join(new_description)
 
-                notify_async(title, message + files_text, self.teams_notifier)
+                notify_async(title, message + files_text, self.list_teams_notifier)
                 print(title)
 
                 descriptions_changed = True
@@ -338,10 +346,10 @@ class Scraper:
 
             title = "New Regulations have been found"
             message = f"This new regulations have been found:\n {str(items_set)} \nYou can find more information at " \
-                      f"https://www.bcb.gov.br/estabilidadefinanceira/buscanormas?conteudo=pix&tipoDocumento=Todos "
+                      f"https://www.bcb.gov.br/estabilidadefinanceira/buscanormas?tipoDocumento=Todos"
 
             # Print the new items
-            notify_async(title, message, self.teams_notifier)
+            notify_async(title, message, self.list_teams_notifier)
 
             print(title)
             with open(new_path, 'w', encoding="utf-8") as f:
@@ -369,35 +377,34 @@ class Scraper:
 
                         shutil.copy(os.path.join(self.temp_directory, name + type_file), new_path)
 
-                        title = f"New changes in {os.path.basename(new_path)}"
-                        message = f"Changes have been identified in the regulatory file {os.path.basename(new_path)}"
+                        title = f"New changes in {name}"
+                        message = f"Changes have been identified in the regulatory file {name}"
 
-                        notify_async(title, message, self.teams_notifier)
+                        notify_async(title, message, self.list_teams_notifier)
                         print(title)
                     else:
                         print(name + type_file + ' equal')
 
                 # compare catalog zip
-                    # A comparação será atualizada no futuro.
-                    #
-                    # Próximos passos:
-                    # - Salvar Catalogos antigos no old versions
-                    # - Realizar comparações dos catalogos relativos (memso nome) da old versions com da temp
-                    # - Realizar comparações de diferenças de catalogos novos temp que não existem na old verions
-
                 elif descriptions_changed and catalog_old is not None and type_file == '.zip' and \
                         ('Definições detalhadas das mensagens do Catálogo de Mensagens do SPI' in name):
-                    catalog_new = os.path.join(self.temp_directory, name + type_file)
-                    # unzip catalog files
-                    with zipfile.ZipFile(catalog_new, 'r') as zip:
-                        zip.extractall(self.temp_directory)
 
-                    catalog_new = catalog_new.replace('.zip', '').replace(
+                    temp_zip_calalog_file = os.path.join(self.temp_directory, name + type_file)
+                    output_old_zip_calalog_file = os.path.join(self.old_versions_directory, name + type_file)
+                    catalog_new = temp_zip_calalog_file.replace('.zip', '').replace(
                         'Definições detalhadas das mensagens do Catálogo de Mensagens do SPI - versão ', 'v')
 
-                    print(f"\n\n\nComparing {os.path.basename(catalog_new)} with {os.path.basename(catalog_old)}")
-
                     output_dir = os.path.join(self.old_versions_directory, "Diferença Catalogo " + os.path.basename(catalog_new))
+
+                    if os.path.exists(output_dir):
+                        print(f"Have been no changes to the {os.path.basename(temp_zip_calalog_file)} at this time.")
+                        continue
+
+                    # unzip catalog files
+                    with zipfile.ZipFile(temp_zip_calalog_file, 'r') as zip:
+                        zip.extractall(self.temp_directory)
+
+                    print(f"\n\n\nComparing {os.path.basename(catalog_new)} with {os.path.basename(catalog_old)}")
 
                     files_changed = compare_files(catalog_new, catalog_old, output_dir)
 
@@ -406,7 +413,10 @@ class Scraper:
                         message_files_chaged = '\n'.join(map(str, files_changed))
                         message = f"The catalog {os.path.basename(catalog_new)} has changes in this files:\n" + message_files_chaged
 
-                        notify_async(title, message, self.teams_notifier)
+                        shutil.copy(temp_zip_calalog_file, output_old_zip_calalog_file)
+
+                        notify_async(title, message, self.list_teams_notifier)
+
 
                     catalog_old = str(catalog_new)
                     pass

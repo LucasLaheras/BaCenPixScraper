@@ -3,6 +3,7 @@ import os
 from TeamsSender import TeamsNotifier
 from inputimeout import inputimeout, TimeoutOccurred
 
+
 def input_with_timeout(prompt, timeout):
     """
     Solicita entrada do usuário com um tempo limite.
@@ -22,6 +23,7 @@ def input_with_timeout(prompt, timeout):
         print("Input timeout. Defaulting to None.")
         return None
 
+
 def get_teams_webhook_url():
     teams_webhook_url = None
     if os.path.exists('teams_webhook_url.txt'):
@@ -37,10 +39,11 @@ def get_teams_webhook_url():
         choice = input_with_timeout(f"Enter the number of your choice (1/2) (you have {answer_time} seconds to answer): ", answer_time)
 
         if choice == '1':
-            teams_webhook_url = input("Enter teams webhook url: ")
+            teams_webhook_url = input("Enter teams webhook url (if has more than split with ';'): ")
             with open('teams_webhook_url.txt', 'w') as f:
                 f.write(teams_webhook_url)
-            return teams_webhook_url
+            list_teams_webook = teams_webhook_url.split(';')
+            return list_teams_webook
         if choice != '2':
             print("Invalid choice. Defaulting to None.")
         return None
@@ -56,6 +59,7 @@ def get_file_path():
         with open('file_path.txt', 'w') as f:
             f.write(file_path)
     return file_path
+
 
 def get_browser():
     browser = None
@@ -84,15 +88,19 @@ def get_browser():
             f.write(browser)
     return browser
 
+
 if __name__ == '__main__':
     file_path = get_file_path()
     browser = get_browser()
-    teams_webhook_url = get_teams_webhook_url()
-    if teams_webhook_url:
-        teams_notifier = TeamsNotifier(webhook_url=teams_webhook_url)
+    list_teams_webhook_url = get_teams_webhook_url()
+    list_teams_notifier = []
+
+    if list_teams_webhook_url:
+        for teams_webhook in list_teams_webhook_url:
+            list_teams_notifier.append(TeamsNotifier(webhook_url=teams_webhook))
     else:
-        teams_notifier = None
-    C = Scraper(file_path, browser, teams_notifier)
+        list_teams_notifier = None
+    C = Scraper(file_path, browser, list_teams_notifier)
 
     C.compare_all()
     # C.search_main_pix()
